@@ -1,0 +1,13 @@
+{
+  "appId": "com.stealth.cam",
+  "appName": "System Service",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#000000",
+    "hideLogs": true
+  }
+}
