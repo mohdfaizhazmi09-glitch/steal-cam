@@ -1,0 +1,12 @@
+{
+  "name": "stealth-cam",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^5.7.0",
+    "@capacitor/core": "^5.7.0"
+  },
+  "scripts": {
+    "build": "echo 'No build step needed'"
+  }
+}
